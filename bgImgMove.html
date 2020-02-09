@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<canvas id="canvas" width="284px" height="177px"></canvas>
+<script>
+  const canvas = document.getElementById('canvas')
+  const ctx = canvas.getContext('2d')
+  let x = 0
+  let y = 0
+  const bgImg = new Image()
+  bgImg.src = 'bg.jpg'
+  bgImg.onload = function () {
+    bgVMove()
+  }
+
+  function bgMove() {
+    ctx.save()
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.translate(x, 0)
+    ctx.drawImage(bgImg, 0, 0)
+    ctx.drawImage(bgImg, -canvas.width, 0)
+    x+=5
+    if (x >= canvas.width) {
+      x = 0
+    }
+    ctx.restore()
+    window.requestAnimationFrame(bgMove)
+  }
+  function bgVMove() {
+    ctx.save()
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.translate(0, y)
+    ctx.drawImage(bgImg, 0, 0)
+    ctx.drawImage(bgImg, 0, -canvas.height)
+    y++
+    if (y >= canvas.height) {
+      y = 0
+    }
+    ctx.restore()
+    window.requestAnimationFrame(bgVMove)
+  }
+</script>
+</body>
+</html>

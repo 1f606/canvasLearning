@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+<canvas id="canvas" width="400px" height="400px" style="border: 1px solid black"></canvas>
+<script type="module">
+  import {Rect, Snake} from "./class.js"
+
+  const canvas = document.getElementById('canvas')
+  const ctx = canvas.getContext('2d')
+  let isFoodInSnake = true
+  let timer
+
+  const snake = new Snake(canvas)
+  const food = initFood()
+  snake.init()
+  snake.draw()
+
+  function hasHitBorder() {
+    if (snake.header.x <= 0 || snake.header.y <= 0 || snake.header.x >= canvas.width || snake.header.y >= canvas.height) {
+      clearInterval(timer)
+      alert('game over')
+      timer = null
+    }
+  }
+
+  function hasHitBody() {
+    for (let i = 0; i < snake.body.length; i++) {
+      if (isHit(snake.header, snake.body[i])) {
+        clearInterval(timer)
+        alert('game over')
+        timer = null
+      }
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    food.draw()
+    hasHitBody()
+    hasHitBorder()
+    snake.move()
+    snake.draw()
+    if (isHit(snake.header, food)) {
+      snake.hasAteFood = true
+      initFood()
+    }
+  }
+
+  timer = setInterval(animate, 150)
+  document.onkeydown = function (ev) {
+    const e = ev || window.event
+    switch (e.keyCode) {
+      case 37: {
+        snake.diretion = 0
+        break
+      }
+      case 38: {
+        snake.diretion = 1
+        break
+      }
+      case 39: {
+        snake.diretion = 2
+        break
+      }
+      case 40: {
+        snake.diretion = 3
+        break
+      }
+    }
+  }
+
+  function initFood() {
+    while (isFoodInSnake) {
+      const x = getRandomInRange((canvas.width - 20) / 20) * 20
+      const y = getRandomInRange((canvas.height - 20) / 20) * 20
+      const rect = new Rect(canvas, x, y, 20, 20, 'blue')
+      //  判断食物是否与蛇头重叠
+      if (isHit(snake.header, rect)) {
+        continue
+      }
+
+      //  判断食物是否与蛇身重叠
+      for (let i = 0; i < snake.body.length; i++) {
+        if (isHit(snake.body[i], rect)) {
+          isFoodInSnake = true
+          break
+        }
+      }
+      return rect
+    }
+  }
+
+  function isHit(rect1, rect2) {
+    const minX1 = rect1.x
+    const minX2 = rect2.x
+    const minY1 = rect1.y
+    const minY2 = rect2.y
+
+    const maxX1 = rect1.x + rect1.width
+    const maxX2 = rect2.x + rect2.width
+    const maxY1 = rect1.y + rect2.height
+    const maxY2 = rect2.y + rect2.height
+
+    const minX = Math.max(minX1, minX2)
+    const minY = Math.max(minY1, minY2)
+    const maxX = Math.min(maxX1, maxX2)
+    const maxY = Math.min(maxY1, maxY2)
+
+    if (minX < maxX && minY < maxY) {
+      return true
+    } else {
+      return false
+    }
+  }
+
+  function getRandomInRange(max) {
+    return Math.round(Math.random() * max)
+  }
+</script>
+</body>
+</html>

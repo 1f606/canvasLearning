@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      box-shadow: 0 0 10px #333;
+    }
+
+  </style>
+</head>
+<body>
+<canvas id="bgCanvas" width="320px" height="568px" style="margin: 0;"></canvas>
+<canvas id="planeCanvas" width="320px" height="568px" style="margin: 0;"></canvas>
+<canvas id="bulletCanvas" width="320px" height="568px" style="margin: 0;"></canvas>
+<canvas id="enemyCanvas" width="320px" height="568px" style="margin: 0;"></canvas>
+<embed src="./bgMusic.mp3" hidden="true" autostart="true" loop="true">
+<script>
+  //  背景图canvas的移动
+  const bgCanvas = document.getElementById('bgCanvas')
+  const ctx = bgCanvas.getContext('2d')
+  let y = 0
+  const bgImg = new Image()
+
+  function loadBg() {
+    bgImg.src = './planeWar-bg.png'
+    bgImg.onload = function () {
+      bgVMove()
+    }
+  }
+
+  function bgVMove() {
+    ctx.save()
+    ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height)
+    ctx.translate(0, y)
+    ctx.drawImage(bgImg, 0, 0)
+    ctx.drawImage(bgImg, 0, -bgCanvas.height)
+    y++
+    if (y >= bgCanvas.height) {
+      y = 0
+    }
+    ctx.restore()
+    window.requestAnimationFrame(bgVMove)
+  }
+
+  loadBg()
+
+  //  飞机画布
+  class Plane {
+    constructor(canvas, width, height, imgSrc, planeLoaded) {
+      this.canvas = canvas
+      this.x = this.canvas.width / 2 - 33
+      //  让飞机离底部20
+      this.y = this.canvas.height - 82 - 20
+      this.width = width
+      this.height = height
+      this.img = new Image()
+      this.img.onload = function () {
+        if (planeLoaded) {
+          planeLoaded()
+        }
+      }
+      this.img.src = imgSrc
+      this.bool = true
+    }
+
+    draw(canvas) {
+      const ctx = canvas.getContext('2d')
+      const x = this.width * this.bool
+      ctx.drawImage(this.img, x, 0, this.width, this.height, this.x, this.y, this.width, this.height)
+      this.bool = !this.bool
+    }
+  }
+
+  const planeCanvas = document.getElementById('planeCanvas')
+  const planeCtx = planeCanvas.getContext('2d')
+  const imgSrc = './plane.png'
+  let timer
+
+  function planeLoaded() {
+    plane.draw(planeCanvas)
+  }
+
+  const plane = new Plane(planeCanvas, 66, 82, imgSrc, planeLoaded)
+  setInterval(function () {
+    planeCtx.clearRect(0, 0, planeCanvas.width, planeCanvas.height)
+    plane.draw(planeCanvas)
+  }, 30)
+  document.onkeydown = function (event) {
+    const e = event || window.event
+
+    switch (e.keyCode) {
+      case 37: {
+        plane.left = true
+        break
+      }
+      case 38: {
+        plane.up = true
+        break
+      }
+      case 39: {
+        plane.right = true
+        break
+      }
+      case 40: {
+        plane.down = true
+        break
+      }
+    }
+  }
+  document.onkeyup = function (event) {
+    const e = event || window.event
+
+    switch (e.keyCode) {
+      case 37: {
+        plane.left = false
+        break
+      }
+      case 38: {
+        plane.up = false
+        break
+      }
+      case 39: {
+        plane.right = false
+        break
+      }
+      case 40: {
+        plane.down = false
+        break
+      }
+    }
+  }
+  timer = setInterval(() => {
+    if (plane.left === true) plane.x -= 2
+    if (plane.right === true) plane.x += 2
+    if (plane.up === true) plane.y -= 2
+    if (plane.down === true) plane.y += 2
+  },)
+
+  //  子弹画布
+  class Bullet {
+    constructor(width, height, url) {
+      this.x = plane.x + plane.width / 2 - width / 2
+      this.y = plane.y - height
+      this.img = new Image()
+      this.img.src = url
+      this.width = width
+      this.height = height
+    }
+
+    draw(canvas) {
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(this.img, this.x, this.y, this.width, this.height)
+    }
+
+    move() {
+      this.y -= 10
+    }
+  }
+
+  const buCanvas = document.getElementById('bulletCanvas')
+  const buWidth = 48
+  const buHeight = 14
+
+  const buURL = 'bullet2.png'
+  const buArray = []
+  setInterval(() => {
+    const bullet = new Bullet(buWidth, buHeight, buURL)
+    buArray.push(bullet)
+    bullet.draw(buCanvas)
+  }, 200)
+  setInterval(() => {
+    buCanvas.getContext('2d').clearRect(0, 0, buCanvas.width, buCanvas.height)
+    for (let i = 0; i < buArray.length; i++) {
+      if (buArray[i].y < 0) buArray.splice(i, 1)
+      buArray[i].move()
+      buArray[i].draw(buCanvas)
+    }
+  }, 20)
+
+  // 敌人画布
+  const emyCanvas = document.getElementById('enemyCanvas')
+  const emyCtx = emyCanvas.getContext('2d')
+  let emyType
+  const emyArray = []
+
+  class Enemy {
+    constructor(width, height, imgSrc, canvas) {
+      this.width = width
+      this.height = height
+      this.x = getEmyType(0, canvas.width - width)
+      this.y = -height
+      this.img = new Image()
+      this.img.src = imgSrc
+      this.speed = getEmyType(3, 10)
+    }
+
+    draw(canvas) {
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(this.img, 0, 0, this.width, this.height, this.x, this.y, this.width, this.height)
+    }
+
+    move() {
+      this.y += this.speed
+    }
+
+    isOutOfScreen(canvas) {
+      if (this.y > canvas.height) {
+        return true
+      }
+      return false
+
+    }
+
+    crash () {
+
+    }
+  }
+
+  function getEmyType(min, max) {
+    return Math.round((Math.random() * (max - min)) + min)
+  }
+
+  setInterval(function () {
+    let enemy
+    emyType = getEmyType(1, 3)
+    // console.log(emyType)
+    switch (emyType) {
+      case 1: {
+        enemy = new Enemy(49, 34, './enemy1.png', emyCanvas)
+        break
+      }
+      case 2: {
+        enemy = new Enemy(140, 168, './enemy2.png', emyCanvas)
+        break
+      }
+      case 3: {
+        enemy = new Enemy(60, 90, './enemy3.png', emyCanvas)
+        break
+      }
+    }
+    emyArray.push(enemy)
+    // console.log(emyArray)
+  }, 1000)
+
+  function isEmyHitPlane(obj1, obj2) {
+    const minX1 = obj1.x
+    const minX2 = obj2.x
+    const minY1 = obj1.y
+    const minY2 = obj2.y
+
+    const maxX1 = obj1.x + obj1.width
+    const maxX2 = obj2.x + obj2.width
+    const maxY1 = obj1.y + obj2.height
+    const maxY2 = obj2.y + obj2.height
+
+    const minX = Math.max(minX1, minX2)
+    const minY = Math.max(minY1, minY2)
+    const maxX = Math.min(maxX1, maxX2)
+    const maxY = Math.min(maxY1, maxY2)
+
+    if (minX < maxX && minY < maxY) {
+      return true
+    } else {
+      return false
+    }
+  }
+
+  let emyTimer = setInterval(function () {
+    //  清除画布
+    emyCtx.clearRect(0, 0, emyCanvas.width, emyCanvas.height)
+    for (let i = 0; i < emyArray.length; i++) {
+      if (isEmyHitPlane(emyArray[i], plane)) {
+        clearInterval(emyTimer)
+        emyTimer = null
+        alert('game over')
+      }
+      if (emyArray[i].isOutOfScreen(emyCanvas)) {
+        emyArray.splice(i, 1)
+      }
+      emyArray[i].move()
+      emyArray[i].draw(emyCanvas)
+
+      for (let j = 0; j < emyArray.length; j++) {
+        if (isEmyHitPlane(buArray[i], emyArray[j])) {
+          // emyArray[j].crash()
+          emyArray.splice(j, 1)
+          buArray.splice(i, 1)
+        }
+      }
+
+    }
+  }, 50)
+</script>
+</body>
+</html>
